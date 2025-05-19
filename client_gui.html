@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>File Manager</title>
+  <link href="https://fonts.googleapis.com/css2?family=Roboto&display=swap" rel="stylesheet">
+  <style>
+    body {
+      font-family: 'Roboto', sans-serif;
+      background: #f4f4f4;
+      margin: 0;
+      padding: 0;
+    }
+
+    .container {
+      width: 100%;
+      max-width: 600px;
+      margin: 50px auto;
+      background: #fff;
+      padding: 30px;
+      box-shadow: 0 0 10px rgba(0,0,0,0.1);
+      border-radius: 10px;
+    }
+
+    h2 {
+      text-align: center;
+      margin-bottom: 20px;
+      color: #333;
+    }
+
+    input, textarea, button, select {
+      width: 100%;
+      padding: 10px;
+      margin-top: 10px;
+      margin-bottom: 20px;
+      border: 1px solid #ccc;
+      border-radius: 5px;
+      font-size: 16px;
+    }
+
+    button {
+      background-color: #007bff;
+      color: white;
+      border: none;
+      cursor: pointer;
+    }
+
+    button:hover {
+      background-color: #0056b3;
+    }
+
+    #main, #file-ops, #content-field {
+      display: none;
+    }
+
+    #output {
+      white-space: pre-wrap;
+      background: #f9f9f9;
+      padding: 15px;
+      border: 1px solid #ccc;
+      border-radius: 5px;
+      color: #444;
+    }
+  </style>
+</head>
+<body>
+
+<div class="container">
+  <h2>File Management System</h2>
+
+  <div id="auth">
+    <input type="text" id="username" placeholder="Username" />
+    <input type="password" id="password" placeholder="Password" />
+    <button onclick="authenticate()">Login</button>
+  </div>
+
+  <div id="main">
+    <select id="actionSelect" onchange="handleActionChange()">
+      <option value="">-- Select an Action --</option>
+      <option value="LIST">List Files</option>
+      <option value="CREATE">Create File</option>
+      <option value="READ">Read File</option>
+      <option value="DELETE">Delete File</option>
+    </select>
+
+    <div id="file-ops">
+      <input type="text" id="filename" placeholder="Enter Filename" />
+    </div>
+
+    <div id="content-field">
+      <textarea id="content" placeholder="Enter content here..."></textarea>
+    </div>
+
+    <button id="executeBtn" onclick="executeAction()">Execute</button>
+
+    <pre id="output"></pre>
+  </div>
+</div>
+
+<script>
+  async function authenticate() {
+    const username = document.getElementById("username").value;
+    const password = document.getElementById("password").value;
+
+    const res = await fetch("/auth", {
+      method: "POST",
+      headers: {"Content-Type": "application/json"},
+      body: JSON.stringify({ username, password })
+    });
+
+    const data = await res.text();
+    if (data.includes("successful")) {
+      document.getElementById("auth").style.display = "none";
+      document.getElementById("main").style.display = "block";
+      document.getElementById("output").textContent = "Authenticated successfully.";
+    } else {
+      alert("Authentication failed");
+    }
+  }
+
+  function handleActionChange() {
+    const action = document.getElementById("actionSelect").value;
+    const fileOps = document.getElementById("file-ops");
+    const contentField = document.getElementById("content-field");
+
+    fileOps.style.display = "none";
+    contentField.style.display = "none";
+
+    if (action === "LIST") {
+      fileOps.style.display = "none";
+    } else {
+      fileOps.style.display = "block";
+    }
+
+    if (action === "CREATE") {
+      contentField.style.display = "block";
+    }
+  }
+
+  async function executeAction() {
+    const action = document.getElementById("actionSelect").value;
+    const filename = document.getElementById("filename").value;
+    const content = document.getElementById("content").value;
+
+    if (action === "LIST") {
+      sendCommand("LIST::");
+    } else if (action === "CREATE") {
+      if (!filename || !content) return alert("Enter filename and content");
+      sendCommand(`CREATE::${filename}::${content}`);
+    } else if (action === "READ") {
+      if (!filename) return alert("Enter filename");
+      sendCommand(`READ::${filename}`);
+    } else if (action === "DELETE") {
+      if (!filename) return alert("Enter filename");
+      if (confirm(`Are you sure you want to delete "${filename}"?`)) {
+        sendCommand(`DELETE::${filename}`);
+      }
+    } else {
+      alert("Select an action");
+    }
+  }
+
+  async function sendCommand(command) {
+    const res = await fetch("/command", {
+      method: "POST",
+      headers: {"Content-Type": "application/json"},
+      body: JSON.stringify({ command })
+    });
+
+    const data = await res.text();
+    document.getElementById("output").textContent = data;
+  }
+</script>
+
+</body>
+</html>
